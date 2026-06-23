@@ -1,5 +1,13 @@
 # 🤖 Agente Diário — RJ
 
+![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Ollama](https://img.shields.io/badge/Ollama-local-black?logo=ollama)
+![LangGraph](https://img.shields.io/badge/LangGraph-agents-ff6f00)
+![Flask](https://img.shields.io/badge/Flask-3.0-000?logo=flask)
+![Stars](https://img.shields.io/github/stars/shadowruge/jarvis?style=social)
+![Last commit](https://img.shields.io/github/last-commit/shadowruge/jarvis)
+
 Assistente pessoal com IA local (Ollama + qwen3:0.6b) para o seu dia a dia no Rio de Janeiro.
 
 ## ✨ Funcionalidades
