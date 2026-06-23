@@ -1,0 +1,58 @@
+# ─── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Ambiente virtual ───────────────────────────────────
+venv/
+env/
+.venv/
+ENV/
+
+# ─── Credenciais (CRÍTICO — nunca commitar) ─────────────
+credentials/google_credentials.json
+credentials/google_token.json
+credentials/*.json
+!credentials/.gitignore
+!credentials/README.md
+
+# ─── Env files ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Dados gerados ──────────────────────────────────────
+data/outputs/*.json
+data/processed/*.json
+data/outputs/*.csv
+data/processed/*.csv
+!data/outputs/.gitkeep
+!data/processed/.gitkeep
+
+# ─── Logs ───────────────────────────────────────────────
+*.log
+logs/
+data/logs/
+
+# ─── IDE / Editor ───────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Cache do Ollama ────────────────────────────────────
+# (caso você tenha configurado modelos pra baixar localmente)
+ollama_cache/
+
+# ─── Builds / dist ──────────────────────────────────────
+build/
+dist/
+*.whl

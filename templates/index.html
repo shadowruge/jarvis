@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente Diário · RJ</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   #30363d;
+    --accent:   #2ea043;
+    --accent2:  #238636;
+    --blue:     #1f6feb;
+    --yellow:   #d29922;
+    --red:      #da3633;
+    --text:     #e6edf3;
+    --muted:    #7d8590;
+    --card-r:   12px;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Inter', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+  .logo { font-size: 22px; }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: -.3px; }
+  header .sub { font-size: 12px; color: var(--muted); margin-left: auto; font-family: var(--mono); }
+  .badge {
+    background: var(--accent2);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+  }
+
+  /* ── LAYOUT ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 57px);
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-section h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* Quick action buttons */
+  .quick-btns { display: flex; flex-direction: column; gap: 6px; }
+  .quick-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--sans);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .15s, border-color .15s;
+  }
+  .quick-btn:hover { background: var(--border); border-color: var(--blue); }
+  .quick-btn .icon { font-size: 16px; flex-shrink: 0; }
+
+  /* Live data card */
+  .data-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-r);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .data-card h4 { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+  .data-card pre {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+  .loading { color: var(--muted); font-size: 12px; font-style: italic; }
+
+  /* Perfil selector */
+  .perfil-btns { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .perfil-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--sans);
+    transition: all .15s;
+  }
+  .perfil-btn.active, .perfil-btn:hover {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+
+  /* ── CHAT ── */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .chat-header h2 { font-size: 14px; font-weight: 600; }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px rgba(46,160,67,.3);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 2px rgba(46,160,67,.3); }
+    50%      { box-shadow: 0 0 0 5px rgba(46,160,67,.1); }
+  }
+  .model-tag {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Messages */
+  .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 90%; }
+  .msg.user { margin-left: auto; flex-direction: row-reverse; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .msg.user .avatar { background: var(--blue); border-color: var(--blue); }
+  .bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .bubble {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.agent .bubble { border-bottom-left-radius: 4px; }
+  .msg.error .bubble { background: rgba(218,54,51,.15); border-color: var(--red); }
+
+  /* Typing indicator */
+  .typing .bubble { padding: 14px; }
+  .dots { display: flex; gap: 4px; }
+  .dots span {
+    width: 6px; height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: bounce .9s infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); opacity: .5; }
+    50%      { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input */
+  .input-area {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    max-height: 120px;
+    transition: border-color .15s;
+  }
+  textarea:focus { border-color: var(--blue); }
+  textarea::placeholder { color: var(--muted); }
+  .send-btn {
+    background: var(--accent2);
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background .15s, transform .1s;
+    flex-shrink: 0;
+    height: 42px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .send-btn:hover { background: var(--accent); }
+  .send-btn:active { transform: scale(.95); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* ── Welcome ── */
+  .welcome {
+    margin: auto;
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 400px;
+  }
+  .welcome .logo-big { font-size: 48px; margin-bottom: 12px; }
+  .welcome h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .welcome p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .welcome-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .chip:hover { border-color: var(--blue); }
+
+  /* Scrollbar */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🤖</div>
+  <h1>Jarvis</h1>
+  <span class="badge">RJ</span>
+  <span class="sub" id="live-time"></span>
+</header>
+
+<div class="workspace">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>Ações Rápidas</h3>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="enviarRapido('📰 Me dê um resumo das notícias mais importantes do Rio de Janeiro e do Brasil hoje.')">
+          <span class="icon">📰</span> Notícias de hoje
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('📈 Como está a bolsa de valores hoje? Me dê um resumo do Ibovespa e principais ações.')">
+          <span class="icon">📈</span> Bolsa de valores
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('💰 Quais são os melhores investimentos agora para perfil moderado? Me dê análise e recomendações.')">
+          <span class="icon">💰</span> Melhores investimentos
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('🌤️ Como está o clima agora no Rio? Vai chover?')">
+          <span class="icon">🌤️</span> Clima no Rio
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('⚽ Me dá a classificação do Brasileirão e os próximos jogos do Flamengo.')">
+          <span class="icon">⚽</span> Esportes / Flamengo
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('🗺️ Calcula a rota para o trabalho de carro agora.')">
+          <span class="icon">🚗</span> Rota para o trabalho
+        </button>
+        <button class="quick-btn" onclick="abrirEmail()">
+          <span class="icon">📧</span> Classificar e-mail
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('📅 O que tenho na agenda hoje?')">
+          <span class="icon">📅</span> Agenda de hoje
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('📬 Quais e-mails não lidos eu tenho?')">
+          <span class="icon">📬</span> Inbox não lidos
+        </button>
+        <button class="quick-btn" onclick="enviarRapido('📋 Classifica os últimos 10 e-mails da minha inbox.')">
+          <span class="icon">🗂️</span> Classificar inbox
+        </button>
+        <button class="quick-btn" onclick="abrirCriarEvento()">
+          <span class="icon">➕</span> Criar evento
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🌤️ Clima — Rio de Janeiro</h3>
+      <div class="data-card">
+        <h4>Agora · OpenWeather</h4>
+        <pre id="clima-data" class="loading">Carregando...</pre>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>⚽ Esportes</h3>
+      <div class="perfil-btns">
+        <button class="perfil-btn active" onclick="carregarEsporte('brasileirao', this)">Brasileirão</button>
+        <button class="perfil-btn" onclick="carregarEsporte('flamengo', this)">Flamengo</button>
+        <button class="perfil-btn" onclick="carregarEsporte('flu', this)">Fluminense</button>
+        <button class="perfil-btn" onclick="carregarEsporte('vasco', this)">Vasco</button>
+        <button class="perfil-btn" onclick="carregarEsporte('botafogo', this)">Botafogo</button>
+      </div>
+      <div class="data-card">
+        <pre id="esporte-data" class="loading">Carregando...</pre>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🗺 Rotas — Trajeto rápido</h3>
+      <div class="perfil-btns" style="margin-bottom: 6px;">
+        <span style="font-size: 11px; color: var(--muted); margin-right: 4px;">Destino:</span>
+        <button class="perfil-btn active rota-destino" data-dest="trabalho" onclick="selecionarDestinoRota('trabalho', this)">Trabalho</button>
+        <button class="perfil-btn rota-destino" data-dest="casa" onclick="selecionarDestinoRota('casa', this)">Casa</button>
+        <button class="perfil-btn rota-destino" data-dest="aeroporto" onclick="selecionarDestinoRota('aeroporto', this)">Aeroporto</button>
+      </div>
+      <div class="perfil-btns">
+        <span style="font-size: 11px; color: var(--muted); margin-right: 4px;">Modo:</span>
+        <button class="perfil-btn active rota-modo" data-modo="driving" onclick="selecionarModoRota('driving', this)">🚗 Carro</button>
+        <button class="perfil-btn rota-modo" data-modo="walking" onclick="selecionarModoRota('walking', this)">🚶 A pé</button>
+        <button class="perfil-btn rota-modo" data-modo="cycling" onclick="selecionarModoRota('cycling', this)">🚴 Bike</button>
+      </div>
+      <div class="data-card" style="margin-top: 8px;">
+        <h4 id="rota-titulo">🚗 Rota para o trabalho</h4>
+        <pre id="rota-data" class="loading">Selecione um destino acima</pre>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>📈 Bolsa Agora</h3>
+      <div class="data-card">
+        <h4>B3 — Tempo Real</h4>
+        <pre id="bolsa-data" class="loading">Carregando...</pre>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>💰 Carteira Sugerida</h3>
+      <div class="perfil-btns">
+        <button class="perfil-btn active" onclick="carregarInvestimentos('conservador', this)">Conservador</button>
+        <button class="perfil-btn" onclick="carregarInvestimentos('moderado', this)">Moderado</button>
+        <button class="perfil-btn" onclick="carregarInvestimentos('arrojado', this)">Arrojado</button>
+      </div>
+      <div class="data-card">
+        <pre id="invest-data" class="loading">Carregando...</pre>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>📰 Últimas Notícias</h3>
+      <div class="data-card">
+        <pre id="noticias-data" class="loading">Carregando...</pre>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CHAT -->
+  <main class="chat-area">
+    <div class="chat-header">
+      <div class="status-dot"></div>
+      <h2>Chat com o Agente</h2>
+      <span class="model-tag" id="model-tag">ollama · carregando...</span>
+    </div>
+
+    <div class="messages" id="chat-box">
+      <div class="welcome">
+        <div class="logo-big" id="welcome-icon">🌅</div>
+        <h2 id="welcome-title">Bom dia, Rio! 🏖️</h2>
+        <p>Seu assistente pessoal para o dia a dia. Clima, notícias, bolsa, esportes e investimentos — tudo em um só lugar.</p>
+        <div class="welcome-chips">
+          <span class="chip" onclick="enviarRapido('Quais notícias são destaque hoje no Rio?')">Notícias do RJ</span>
+          <span class="chip" onclick="enviarRapido('O Ibovespa subiu ou caiu hoje?')">Ibovespa hoje</span>
+          <span class="chip" onclick="enviarRapido('Como está o clima agora no Rio?')">Clima RJ</span>
+          <span class="chip" onclick="enviarRapido('Tabela do Brasileirão 2026')">Brasileirão</span>
+          <span class="chip" onclick="enviarRapido('Devo investir em Tesouro Direto ou CDB?')">Tesouro vs CDB</span>
+          <span class="chip" onclick="enviarRapido('Me explique o que é um FII e se vale a pena')">O que é FII?</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <textarea id="user-input"
+        rows="1"
+        placeholder="Pergunte sobre clima, notícias, bolsa, esportes, investimentos... ou cole um e-mail"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="enviarMensagem()" title="Enviar (Enter)">➤</button>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ── Relógio ao vivo ──
+function updateTime() {
+  const now = new Date();
+  document.getElementById('live-time').textContent =
+    now.toLocaleDateString('pt-BR') + ' · ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+updateTime(); setInterval(updateTime, 10000);
+
+// ── Saudação dinâmica conforme o horário ──
+function atualizarSaudacao() {
+  const h = new Date().getHours();
+  const icon = document.getElementById('welcome-icon');
+  const title = document.getElementById('welcome-title');
+  if (!icon || !title) return;
+
+  if (h >= 5 && h < 12) {
+    icon.textContent = '🌅';
+    title.textContent = 'Bom dia, Rio! 🏖️';
+  } else if (h >= 12 && h < 18) {
+    icon.textContent = '☀️';
+    title.textContent = 'Boa tarde, Rio! 🌞';
+  } else if (h >= 18 && h < 22) {
+    icon.textContent = '🌇';
+    title.textContent = 'Boa noite, Rio! 🌃';
+  } else {
+    icon.textContent = '🌙';
+    title.textContent = 'Boa madrugada, Rio! ✨';
+  }
+}
+atualizarSaudacao(); setInterval(atualizarSaudacao, 60_000); // atualiza a cada 1 min
+
+// ── Chat ──
+const chatBox  = document.getElementById('chat-box');
+const inputEl  = document.getElementById('user-input');
+const sendBtn  = document.getElementById('send-btn');
+let hasStarted = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); }
+}
+
+function appendMsg(role, text, isTyping = false) {
+  // Remove welcome screen on first message
+  if (!hasStarted) {
+    const w = chatBox.querySelector('.welcome');
+    if (w) w.remove();
+    hasStarted = true;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}${isTyping ? ' typing' : ''}`;
+
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.textContent = role === 'user' ? '👤' : '🤖';
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+
+  if (isTyping) {
+    bub.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  } else {
+    bub.textContent = text;
+  }
+
+  wrap.appendChild(av);
+  wrap.appendChild(bub);
+  chatBox.appendChild(wrap);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return wrap;
+}
+
+async function enviarMensagem() {
+  const texto = inputEl.value.trim();
+  if (!texto || sendBtn.disabled) return;
+
+  appendMsg('user', texto);
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  const typing = appendMsg('agent', '', true);
+  const typingBubble = typing.querySelector('.bubble');
+
+  try {
+    const res = await fetch('/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensagem: texto })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // Remove typing indicator e prepara bolha para streaming
+    typing.classList.remove('typing');
+    typingBubble.innerHTML = '';
+    typingBubble.textContent = '';
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let acc = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+
+      // Parse SSE: linhas "data: {...}"
+      for (const line of chunk.split('\n')) {
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.erro) {
+            typingBubble.textContent = `⚠️ ${obj.erro}`;
+            typing.classList.add('error');
+            return;
+          }
+          if (obj.status) {
+            // Status intermediário ("Buscando notícias...")
+            const statusEl = document.createElement('div');
+            statusEl.style.fontSize = '11px';
+            statusEl.style.color = 'var(--muted)';
+            statusEl.style.fontStyle = 'italic';
+            statusEl.style.marginBottom = '6px';
+            statusEl.textContent = obj.status;
+            typingBubble.appendChild(statusEl);
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+          if (obj.chunk) {
+            acc += obj.chunk;
+            typingBubble.textContent = acc;
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    typing.classList.remove('typing');
+    typingBubble.textContent = `⚠️ Erro: ${err.message || err}. Verifique se o Ollama está rodando em http://localhost:11434.`;
+    typing.classList.add('error');
+  } finally {
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+function enviarRapido(texto) {
+  inputEl.value = texto;
+  enviarMensagem();
+}
+
+function abrirEmail() {
+  inputEl.value = '📧 Classifique este e-mail:\n\n[Cole aqui o conteúdo do e-mail]';
+  inputEl.focus();
+  autoResize(inputEl);
+}
+
+function abrirCriarEvento() {
+  inputEl.value = '➕ Criar evento no Google Calendar:\n\n' +
+    'Título: [ex: Dentista]\n' +
+    'Data/hora de início (ISO): [ex: 2026-06-25T14:00]\n' +
+    'Duração em minutos: [ex: 60]\n' +
+    'Local (opcional): [ex: Clínica da Barra]\n' +
+    'Descrição (opcional): []';
+  inputEl.focus();
+  autoResize(inputEl);
+}
+
+// ── Carregar dados da sidebar ──
+async function carregarBolsa() {
+  try {
+    const r = await fetch('/api/bolsa');
+    const d = await r.json();
+    document.getElementById('bolsa-data').textContent = d.dados;
+    document.getElementById('bolsa-data').classList.remove('loading');
+  } catch {
+    document.getElementById('bolsa-data').textContent = '⚠️ Sem conexão';
+  }
+}
+
+async function carregarInvestimentos(perfil, btn) {
+  document.querySelectorAll('.perfil-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const el = document.getElementById('invest-data');
+  el.textContent = 'Carregando...';
+  el.classList.add('loading');
+  try {
+    const r = await fetch(`/api/investimentos?perfil=${perfil}`);
+    const d = await r.json();
+    el.textContent = d.dados;
+    el.classList.remove('loading');
+  } catch {
+    el.textContent = '⚠️ Sem conexão';
+  }
+}
+
+async function carregarNoticias() {
+  try {
+    const r = await fetch('/api/noticias?tema=rio');
+    const d = await r.json();
+    document.getElementById('noticias-data').textContent = d.dados;
+    document.getElementById('noticias-data').classList.remove('loading');
+  } catch {
+    document.getElementById('noticias-data').textContent = '⚠️ Sem conexão';
+  }
+}
+
+async function carregarClima(previsao = 'atual') {
+  const el = document.getElementById('clima-data');
+  el.textContent = 'Carregando...';
+  el.classList.add('loading');
+  try {
+    const r = await fetch(`/api/clima?previsao=${previsao}`);
+    const d = await r.json();
+    el.textContent = d.dados;
+    el.classList.remove('loading');
+  } catch {
+    el.textContent = '⚠️ Sem conexão';
+  }
+}
+
+async function carregarEsporte(esporte, btn) {
+  // Seleciona só os botões do bloco de esportes (não os de investimentos)
+  const bloco = btn ? btn.closest('.sidebar-section') : null;
+  if (bloco) {
+    bloco.querySelectorAll('.perfil-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+  const el = document.getElementById('esporte-data');
+  el.textContent = 'Carregando...';
+  el.classList.add('loading');
+  try {
+    const r = await fetch(`/api/esportes?esporte=${esporte}`);
+    const d = await r.json();
+    el.textContent = d.dados;
+    el.classList.remove('loading');
+  } catch {
+    el.textContent = '⚠️ Sem conexão';
+  }
+}
+
+// ── Rotas ──
+let rotaEstado = { destino: 'trabalho', modo: 'driving' };
+
+const ROTAS_DESTINOS = {
+  trabalho: { nome: 'Trabalho',     emoji: '💼', endereco: 'Rua do Ouvidor, 50, Centro, Rio de Janeiro' },
+  casa:     { nome: 'Casa',         emoji: '🏠', endereco: 'Rua Voluntários da Pátria, 100, Botafogo, Rio de Janeiro' },
+  aeroporto:{ nome: 'Aeroporto',    emoji: '✈️', endereco: 'Aeroporto Internacional Tom Jobim, Galeão, Rio de Janeiro' },
+};
+
+function selecionarDestinoRota(dest, btn) {
+  rotaEstado.destino = dest;
+  document.querySelectorAll('.rota-destino').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  carregarRota();
+}
+
+function selecionarModoRota(modo, btn) {
+  rotaEstado.modo = modo;
+  document.querySelectorAll('.rota-modo').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  carregarRota();
+}
+
+async function carregarRota() {
+  const dest = ROTAS_DESTINOS[rotaEstado.destino];
+  const modoLabel = { driving: '🚗 Carro', walking: '🚶 A pé', cycling: '🚴 Bike' }[rotaEstado.modo];
+
+  document.getElementById('rota-titulo').textContent =
+    `${modoLabel} → ${dest.nome}`;
+  const el = document.getElementById('rota-data');
+  el.textContent = 'Calculando rota...';
+  el.classList.add('loading');
+
+  try {
+    const r = await fetch(`/api/rota?origem=Botafogo, Rio de Janeiro&destino=${encodeURIComponent(dest.endereco)}&modo=${rotaEstado.modo}`);
+    const d = await r.json();
+    el.textContent = d.dados || d.erro || 'Sem dados';
+    el.classList.remove('loading');
+  } catch {
+    el.textContent = '⚠️ Erro ao calcular rota';
+  }
+}
+
+// Carrega tudo ao iniciar
+(async () => {
+  // Pega modelo real do backend
+  try {
+    const r = await fetch('/api/info');
+    const d = await r.json();
+    const tag = document.getElementById('model-tag');
+    if (tag && d.modelo) tag.textContent = `ollama · ${d.modelo}`;
+  } catch {
+    const tag = document.getElementById('model-tag');
+    if (tag) tag.textContent = 'ollama · offline';
+  }
+  carregarBolsa();
+  carregarInvestimentos('conservador');
+  carregarClima('atual');
+  carregarEsporte('brasileirao');
+  carregarRota();                 // ← novo
+  carregarNoticias();
+})();
+
+// Atualiza dados ao vivo
+setInterval(carregarBolsa, 300_000);
+setInterval(carregarClima, 600_000);    // clima a cada 10 min
+setInterval(carregarNoticias, 600_000);
+</script>
+</body>
+</html>
