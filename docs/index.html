@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis — Agente Diário RJ</title>
+<meta name="description" content="Assistente pessoal com IA local (Ollama) para o Rio de Janeiro. Notícias, bolsa, clima, esportes, rotas, Google Calendar + Gmail.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --accent: #2ea043;
+    --accent2: #238636;
+    --blue: #1f6feb;
+    --yellow: #d29922;
+    --red: #da3633;
+    --text: #e6edf3;
+    --muted: #7d8590;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 80px 24px 60px;
+    text-align: center;
+    background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero .logo { font-size: 64px; margin-bottom: 16px; }
+  .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 8px; letter-spacing: -1px; }
+  .hero .tag { font-size: 20px; color: var(--muted); margin-bottom: 32px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 32px; }
+  .badges img { height: 20px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .btn:hover { transform: translateY(-1px); text-decoration: none; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { box-shadow: 0 4px 12px rgba(46, 160, 67, 0.4); }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface2); }
+
+  /* ── SECTIONS ── */
+  section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
+  section h2 { font-size: 32px; margin-bottom: 24px; text-align: center; }
+
+  /* ── FEATURES ── */
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .feature:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .feature .icon { font-size: 32px; margin-bottom: 12px; }
+  .feature h3 { font-size: 17px; margin-bottom: 8px; }
+  .feature p { color: var(--muted); font-size: 14px; }
+
+  /* ── SCREENSHOT ── */
+  .screenshot {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 0 auto;
+    max-width: 760px;
+  }
+  .screenshot-header {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .screenshot-header span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #444;
+  }
+  .screenshot-header span:nth-child(1) { background: #ff5f57; }
+  .screenshot-header span:nth-child(2) { background: #febc2e; }
+  .screenshot-header span:nth-child(3) { background: #28c840; }
+  .chat { padding: 16px 8px; min-height: 200px; }
+  .msg { margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .msg.user .avatar { background: var(--blue); }
+  .msg.agent .avatar { background: var(--accent); }
+  .bubble {
+    background: var(--surface2);
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: 80%;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .msg.user .bubble { background: var(--blue); color: #fff; }
+  .input-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* ── ARCHITECTURE ── */
+  .arch {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 36px; }
+    .hero .tag { font-size: 17px; }
+    section { padding: 40px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="logo">🤖</div>
+  <h1>Agente Diário — RJ</h1>
+  <p class="tag">Assistente pessoal com IA local para o Rio de Janeiro</p>
+  <div class="badges">
+    <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+    <img src="https://img.shields.io/badge/Ollama-local-black?logo=ollama" alt="Ollama">
+    <img src="https://img.shields.io/badge/LangGraph-agents-ff6f00" alt="LangGraph">
+    <img src="https://img.shields.io/badge/Flask-3.0-000?logo=flask" alt="Flask">
+  </div>
+  <div class="cta">
+    <a class="btn btn-primary" href="https://github.com/shadowruge/jarvis">⭐ Ver no GitHub</a>
+    <a class="btn btn-secondary" href="https://github.com/shadowruge/jarvis#-como-rodar">🚀 Como rodar</a>
+  </div>
+</section>
+
+<section>
+  <h2>✨ Funcionalidades</h2>
+  <div class="features">
+    <div class="feature"><div class="icon">📰</div><h3>Notícias RJ</h3><p>17 portais cariocas via RSS + HTML, com resumo via Ollama.</p></div>
+    <div class="feature"><div class="icon">📈</div><h3>Bolsa</h3><p>Ibovespa + PETR4, VALE3, ITUB4, WEGE3 em tempo real.</p></div>
+    <div class="feature"><div class="icon">🌤️</div><h3>Clima</h3><p>OpenWeather: agora, hoje, amanhã ou 5 dias.</p></div>
+    <div class="feature"><div class="icon">⚽</div><h3>Esportes</h3><br><p>Flamengo, Flu, Vasco, Botafogo, Brasileirão.</p></div>
+    <div class="feature"><div class="icon">🗺️</div><h3>Rotas</h3><p>Carro, a pé ou bike. Mapbox ou OSRM público.</p></div>
+    <div class="feature"><div class="icon">💰</div><h3>Investimentos</h3><p>Carteira sugerida por perfil de risco.</p></div>
+    <div class="feature"><div class="icon">📅</div><h3>Google Calendar</h3><p>Listar, buscar e criar eventos.</p></div>
+    <div class="feature"><div class="icon">✉️</div><h3>Gmail</h3><p>Buscar, ler, classificar e enviar e-mails.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>💬 Preview do chat</h2>
+  <div class="screenshot">
+    <div class="screenshot-header"><span></span><span></span><span></span></div>
+    <div class="chat">
+      <div class="msg user"><div class="avatar">👤</div><div class="bubble">Quais as notícias de hoje no Rio?</div></div>
+      <div class="msg agent"><div class="avatar">🤖</div><div class="bubble">📰 Buscando em 17 portais…<br><br>🚨 <b>Segurança</b> — Operação no Dona Marta identifica célula do CV.<br>⚖️ <b>Estado</b> — Adesão ao programa de dívida: RJ deixará de pagar R$ 12 bi à União.<br>🚌 <b>Greve</b> — Motoristas e cobradores anunciam paralisação a partir de segunda.</div></div>
+      <div class="msg user"><div class="avatar">👤</div><div class="bubble">O que tenho na agenda hoje?</div></div>
+      <div class="msg agent"><div class="avatar">🤖</div><div class="bubble">📅 <b>Agenda de hoje</b> (2 eventos):<br><br>• <b>Daily standup</b> (09:00–09:30)<br>&nbsp;&nbsp;📍 Zoom<br>• <b>Almoço cliente</b> (12:30–14:00)<br>&nbsp;&nbsp;📍 Restaurante Galeto Sat's</div></div>
+    </div>
+    <div class="input-bar">Pergunte algo ao jarvis…</div>
+  </div>
+</section>
+
+<section>
+  <h2>🏗️ Arquitetura</h2>
+<pre class="arch">Flask (web server)
+└── LangGraph (grafo de estados com memória)
+      ├── ChatOllama (modelo local)
+      └── 17 Tools:
+            ├── buscar_noticias_rj_brasil()
+            ├── buscar_bolsa_valores()
+            ├── classificar_email()
+            ├── analisar_investimentos()
+            ├── clima_rio_janeiro()
+            ├── estatisticas_esportes()
+            ├── calcular_rota()
+            ├── listar_eventos_google()
+            ├── buscar_emails_gmail()
+            ├── enviar_email_gmail()
+            └── ... +7 mais</pre>
+</section>
+
+<footer>
+  Feito com ❤️ para o Rio de Janeiro 🌊 ·
+  <a href="https://github.com/shadowruge/jarvis">github.com/shadowruge/jarvis</a>
+</footer>
+
+</body>
+</html>
