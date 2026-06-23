@@ -26,3 +26,7 @@ google-auth-oauthlib>=1.2
 
 # Typing
 typing-extensions>=4.8
+
+# Testing (dev dependency, mas listada aqui pra CI)
+pytest>=8.0
+pytest-asyncio>=0.23
