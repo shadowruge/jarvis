@@ -1,0 +1,31 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["venv/*", "legacy_*.py", "data/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "E501",   # line length (ruff handles)
+    "B008",   # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*"   = ["B011"]
+"legacy_*"  = ["E", "F", "W", "I", "UP", "B"]  # código legado, ignora
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "integration: testes que precisam de rede/APIs externas",
+    "slow: testes lentos (>1s)",
+]
+filterwarnings = [
+    "error::DeprecationWarning:langchain.*",
+    "ignore::DeprecationWarning",
+]

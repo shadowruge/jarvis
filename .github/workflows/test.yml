@@ -37,5 +37,8 @@ jobs:
 
       - name: Lint (best-effort)
         run: |
-          python -m py_compile main.py tools.py agent.py routes.py google_services.py news_scraper.py
+          python -m py_compile main.py google_services.py news_scraper.py
+          python -m py_compile jarvis/__init__.py jarvis/agent.py jarvis/config.py jarvis/errors.py jarvis/http_client.py
+          python -m py_compile jarvis/routes/__init__.py jarvis/routes/chat.py jarvis/routes/dashboard.py jarvis/routes/google_extras.py jarvis/routes/home.py
+          python -m py_compile jarvis/tools/__init__.py jarvis/tools/bolsa.py jarvis/tools/clima.py jarvis/tools/email.py jarvis/tools/esportes.py jarvis/tools/google.py jarvis/tools/investimentos.py jarvis/tools/noticias.py jarvis/tools/rotas.py
           echo "✅ py_compile OK"

@@ -57,6 +57,11 @@ http://localhost:5000
 | `OLLAMA_MODEL` | `minimax-m3:cloud` | Modelo Ollama a usar |
 | `OLLAMA_HOST` | `http://localhost:11434` | Host do Ollama |
 | `FLASK_DEBUG` | `0` | Modo debug (`1` para ativar) |
+| `FLASK_SECRET_KEY` | _(gerado)_ | Persistido em `data/.flask_secret` se não definido |
+| `FLASK_COOKIE_SECURE` | `0` | `1` em produção (HTTPS) |
+| `PORT` | `5000` | Porta do servidor Flask |
+| `AGENT_TEMPERATURE` | `0.3` | Criatividade do LLM |
+| `AGENT_NUM_PREDICT` | `1024` | Tokens máx por resposta |
 | `OPENWEATHER_API_KEY` | _(vazio)_ | Chave OpenWeather (grátis em [openweathermap.org](https://openweathermap.org/api)) |
 | `MAPBOX_API_KEY` | _(vazio)_ | Chave Mapbox pra rotas (sem ela, usa OSRM público) |
 | `FOOTBALL_API_KEY` | _(vazio)_ | API-Football pra dados completos de esportes |
@@ -114,14 +119,41 @@ Você pode conectar o jarvis à sua agenda e e-mail pessoais. **Setup único** (
 ## 🏗️ Arquitetura
 
 ```
-Flask (web server)
-  └── LangGraph (grafo de estados com memória)
-        ├── ChatOllama (qwen3:0.6b local)
-        └── Tools:
-              ├── buscar_noticias_rj_brasil()  — RSS feeds
-              ├── buscar_bolsa_valores()        — Yahoo Finance API
-              ├── classificar_email()           — classificação local
-              └── analisar_investimentos()      — análise por perfil
+Flask (Blueprints)
+  ├── routes/home.py         — / + /api/info
+  ├── routes/dashboard.py    — /api/bolsa, /api/noticias, /api/clima, ...
+  ├── routes/google_extras.py — /api/agenda, /api/emails
+  └── routes/chat.py         — /chat (sync) + /chat/stream (SSE)
+        │
+        └── LangGraph (grafo de estados com memória)
+              ├── ChatOllama (qwen3:0.6b local)
+              └── 8 Tools (agrupadas por domínio):
+                    ├── tools/noticias.py    — buscar_panorama_rj
+                    ├── tools/bolsa.py       — dados_bolsa
+                    ├── tools/clima.py       — clima_atual_e_previsao
+                    ├── tools/esportes.py    — esportes_cariocas
+                    ├── tools/investimentos.py — analisar_investimentos
+                    ├── tools/email.py       — classificar_email
+                    ├── tools/rotas.py       — calcular_rota_rio
+                    └── tools/google.py      — gerenciar_agenda_gmail
+```
+
+Módulos de suporte:
+- `config.py`     — env vars, paths, `AgentConfig` dataclass
+- `errors.py`     — exceções tipadas (sem vazamento de `str(e)`)
+- `http_client.py` — httpx singleton com retry exponencial
+- `scheduler.py`  — APScheduler com shutdown limpo (SIGTERM/atexit)
+
+### Comandos
+
+```bash
+python main.py                                  # dev
+gunicorn -w 4 -b 0.0.0.0:5000 main:app          # produção Linux
+waitress-serve --port=5000 main:app             # produção Windows
+
+pytest                                          # testes
+ruff check jarvis/ tests/                       # lint
+python -m py_compile $(find jarvis -name "*.py") # smoke compile
 ```
 
 ---
