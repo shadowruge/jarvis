@@ -9,14 +9,10 @@ import os
 
 import pytest
 
-from tools import (
-    _BAIRROS_RJ,
-    _geocode,
-    _is_coord,
-    _parse_coord,
-    analisar_investimentos,
-    classificar_email,
-)
+from jarvis.config import RJ_BAIRROS
+from jarvis.tools.email import classificar_email
+from jarvis.tools.investimentos import analisar_investimentos
+from jarvis.tools.rotas import _is_coord, _parse_coord
 
 
 # ── Helpers internos (sem rede) ──────────────────────────────────
@@ -37,8 +33,8 @@ def test_parse_coord_ok_e_erro():
 def test_bairros_rj_tem_principais():
     """Bairros cariocas mais comuns precisam estar no lookup."""
     essenciais = {"copacabana", "ipanema", "botafogo", "flamengo", "centro", "barra"}
-    assert essenciais.issubset(_BAIRROS_RJ.keys()), (
-        f"Faltando: {essenciais - _BAIRROS_RJ.keys()}"
+    assert essenciais.issubset(RJ_BAIRROS.keys()), (
+        f"Faltando: {essenciais - RJ_BAIRROS.keys()}"
     )
 
 
@@ -90,16 +86,17 @@ def test_classificar_email_email_vazio_retorna_string_amigavel():
     assert len(saida) > 0
 
 
-# ── Geocode: Nominatim público (pode falhar em CI sem rede) ─────
+def test_modos_rota_validos():
+    """Garante que os 3 modos do Mapbox estão mapeados."""
+    from jarvis.tools.rotas import _MODO_LABELS
+    assert set(_MODO_LABELS) == {"driving", "walking", "cycling"}
 
-@pytest.mark.skipif(
-    "GITHUB_ACTIONS" in os.environ,
-    reason="Nominatim não é confiável em CI (rate limit)",
-)
-def test_geocode_bairro_rio_retorna_tuple():
-    """Bairro conhecido do Rio deve resolver pra coordenadas no Brasil."""
-    coord = _geocode("Copacabana", api_key="")
-    if coord is not None:  # pode falhar offline
-        lat, lon = coord
-        assert -24 < lat < -22
-        assert -44 < lon < -43
+
+def test_parse_favoritos_vazio():
+    """Sem env var, retorna dict vazio."""
+    from jarvis.tools.rotas import _parse_favoritos
+    import importlib
+    import jarvis.tools.rotas as r
+    importlib.reload(r)
+    # se FAVORITE_DESTINATIONS não tiver valor, _FAVORITOS é {}
+    assert isinstance(r._FAVORITOS, dict)

@@ -2,7 +2,10 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Jarvis</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +24,15 @@
     --card-r:   12px;
     --mono:     'JetBrains Mono', monospace;
     --sans:     'Inter', sans-serif;
+    /* safe-area insets (iOS notches + Android gesture bars) */
+    --sat:      env(safe-area-inset-top, 0px);
+    --sab:      env(safe-area-inset-bottom, 0px);
+    --sal:      env(safe-area-inset-left, 0px);
+    --sar:      env(safe-area-inset-right, 0px);
+    /* header height (muda em mobile) */
+    --header-h: 57px;
+    /* sidebar width (mudada em mobile) */
+    --sidebar-w: 320px;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -36,10 +48,16 @@
   header {
     border-bottom: 1px solid var(--border);
     padding: 14px 24px;
+    padding-top:  calc(14px + var(--sat));
+    padding-left: calc(24px + var(--sal));
+    padding-right:calc(24px + var(--sar));
     display: flex;
     align-items: center;
     gap: 12px;
     background: var(--surface);
+    min-height: var(--header-h);
+    position: relative;
+    z-index: 20;       /* acima do backdrop (10) e da sidebar (10) */
   }
   .logo { font-size: 22px; }
   header h1 { font-size: 16px; font-weight: 600; letter-spacing: -.3px; }
@@ -54,11 +72,40 @@
     letter-spacing: .5px;
   }
 
+  /* Hamburger — só aparece em tablet/mobile (definido nas media queries) */
+  .menu-toggle {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .menu-toggle:hover { border-color: var(--blue); }
+
+  /* Backdrop do drawer */
+  .drawer-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 9;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .drawer-backdrop.show { opacity: 1; }
+  body.drawer-open { overflow: hidden; }
+
   /* ── LAYOUT ── */
   .workspace {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    height: calc(100vh - 57px);
+    grid-template-columns: var(--sidebar-w) 1fr;
+    height: calc(100vh - var(--header-h));
     overflow: hidden;
   }
 
@@ -70,8 +117,29 @@
     gap: 0;
     overflow-y: auto;
     background: var(--surface);
+    width: var(--sidebar-w);
+    /* Em mobile vira drawer deslizante (definido nas media queries) */
+    transition: transform .25s ease;
   }
   .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+
+  /* Botão fechar do drawer (só aparece em mobile) */
+  .sidebar-close-wrap {
+    display: none;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .sidebar-close:hover { color: var(--text); border-color: var(--blue); }
   .sidebar-section h3 {
     font-size: 11px;
     font-weight: 600;
@@ -191,7 +259,7 @@
   .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* Messages */
-  .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 90%; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; max-width: min(720px, 90%); }
   .msg.user { margin-left: auto; flex-direction: row-reverse; }
   .avatar {
     width: 32px; height: 32px;
@@ -241,6 +309,9 @@
   /* Input */
   .input-area {
     padding: 16px 20px;
+    padding-bottom: calc(16px + var(--sab));
+    padding-left:   calc(20px + var(--sal));
+    padding-right:  calc(20px + var(--sar));
     border-top: 1px solid var(--border);
     display: flex;
     gap: 10px;
@@ -308,21 +379,140 @@
   /* Scrollbar */
   .sidebar::-webkit-scrollbar { width: 4px; }
   .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ════════════════════════════════════════════════════════════
+     RESPONSIVO — tablet (≤1024px) e mobile (≤768px / ≤480px)
+     Breakpoints definidos em :root via variáveis — fácil de ajustar
+     ════════════════════════════════════════════════════════════ */
+
+  /* ── Tablet & abaixo (≤1024px) ─────────────────────────────── */
+  @media (max-width: 1024px) {
+    /* Sidebar vira drawer oculto */
+    .menu-toggle { display: inline-flex; }
+    .sidebar-close-wrap { display: flex; }
+    .drawer-backdrop { display: block; pointer-events: none; }
+    .drawer-backdrop.show { pointer-events: auto; }
+
+    .workspace {
+      grid-template-columns: 1fr;       /* chat ocupa tudo */
+      height: calc(100vh - var(--header-h));
+    }
+    .sidebar {
+      position: fixed;
+      top: var(--header-h);   /* abaixo do header */
+      bottom: 0;
+      left: 0;
+      width: var(--sidebar-w);
+      max-width: 85vw;
+      transform: translateX(-100%);   /* escondida por padrão */
+      border-right: 1px solid var(--border);
+      z-index: 10;
+      box-shadow: 4px 0 24px rgba(0,0,0,.5);
+    }
+    .sidebar.open { transform: translateX(0); }
+  }
+
+  /* ── Mobile (≤768px) ───────────────────────────────────────── */
+  @media (max-width: 768px) {
+    :root {
+      --header-h: 52px;
+    }
+    header {
+      padding: 10px 14px;
+      gap: 8px;
+    }
+    .logo { font-size: 20px; }
+    header h1 { font-size: 15px; }
+    header .sub { font-size: 11px; }
+    .badge { font-size: 9px; padding: 2px 6px; }
+    .menu-toggle { width: 34px; height: 34px; }
+
+    .sidebar-section { padding: 12px 14px; }
+    .sidebar-section h3 { font-size: 10px; }
+    .quick-btn { padding: 8px 10px; font-size: 12.5px; }
+
+    .data-card { padding: 10px; }
+    .data-card pre { font-size: 10.5px; line-height: 1.6; }
+
+    .perfil-btn { font-size: 10.5px; padding: 4px 9px; }
+
+    .chat-header { padding: 10px 14px; }
+    .chat-header h2 { font-size: 13px; }
+    .model-tag { font-size: 10px; padding: 2px 6px; }
+
+    .messages { padding: 14px; gap: 12px; }
+    .msg { max-width: 95%; gap: 8px; }
+    .avatar { width: 28px; height: 28px; font-size: 14px; }
+    .bubble { padding: 10px 12px; font-size: 13.5px; }
+
+    .welcome { padding: 28px 14px; }
+    .welcome .logo-big { font-size: 40px; margin-bottom: 8px; }
+    .welcome h2 { font-size: 18px; }
+    .welcome p { font-size: 12.5px; }
+    .welcome-chips { gap: 5px; }
+    .chip { font-size: 11.5px; padding: 4px 10px; }
+
+    .input-area { padding: 10px 12px; gap: 8px; }
+    textarea { font-size: 16px; }      /* 16px evita zoom duplo no iOS */
+    .send-btn {
+      height: 38px; min-width: 44px;   /* ≥44px = área de toque iOS HIG */
+      padding: 8px 14px;
+      font-size: 16px;
+    }
+  }
+
+  /* ── Mobile pequeno (≤480px) ─────────────────────────────── */
+  @media (max-width: 480px) {
+    :root { --sidebar-w: 280px; }      /* drawer um pouco menor */
+    header { padding: 8px 12px; }
+    .badge { display: none; }          /* esconde "RJ" pra caber */
+    /* Relógio e nome do LLM continuam visíveis em formato compacto */
+    header .sub { font-size: 10px; padding: 0 4px; }
+    .model-tag { font-size: 10px; padding: 2px 6px; }
+    .chat-header h2 { font-size: 12.5px; }
+    .messages { padding: 10px; }
+    .bubble { font-size: 13px; padding: 9px 11px; }
+    .input-area { padding: 8px 10px; }
+  }
+
+  /* ── Paisagem em mobile (altura muito baixa) ─────────────── */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .welcome { padding: 12px 14px; }
+    .welcome .logo-big { font-size: 32px; margin-bottom: 4px; }
+    .welcome h2 { font-size: 16px; margin-bottom: 4px; }
+    .welcome p { font-size: 12px; }
+  }
+
+  /* ── Reduced motion (acessibilidade) ──────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 
 <header>
+  <button class="menu-toggle" id="menu-toggle" onclick="toggleDrawer()" aria-label="Abrir menu lateral">☰</button>
   <div class="logo">🤖</div>
   <h1>Jarvis</h1>
   <span class="badge">RJ</span>
   <span class="sub" id="live-time"></span>
 </header>
 
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+
 <div class="workspace">
 
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-close-wrap">
+      <button class="sidebar-close" onclick="closeDrawer()" aria-label="Fechar menu">✕</button>
+    </div>
 
     <div class="sidebar-section">
       <h3>Ações Rápidas</h3>
@@ -339,8 +529,8 @@
         <button class="quick-btn" onclick="enviarRapido('🌤️ Como está o clima agora no Rio? Vai chover?')">
           <span class="icon">🌤️</span> Clima no Rio
         </button>
-        <button class="quick-btn" onclick="enviarRapido('⚽ Me dá a classificação do Brasileirão e os próximos jogos do Flamengo.')">
-          <span class="icon">⚽</span> Esportes / Flamengo
+        <button class="quick-btn" onclick="abrirEsportes()">
+          <span class="icon">⚽</span> Ver classificação do Brasileirão
         </button>
         <button class="quick-btn" onclick="enviarRapido('🗺️ Calcula a rota para o trabalho de carro agora.')">
           <span class="icon">🚗</span> Rota para o trabalho
@@ -471,10 +661,46 @@
 </div>
 
 <script>
+// ── Detecção de viewport mobile (sem dependência de CSS media queries no JS) ──
+const IS_MOBILE = () => window.matchMedia('(max-width: 1024px)').matches;
+
+// ── Drawer (sidebar mobile) ────────────────────────────────────
+function toggleDrawer() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('drawer-backdrop');
+  const isOpen   = sidebar.classList.toggle('open');
+  backdrop.classList.toggle('show', isOpen);
+  document.body.classList.toggle('drawer-open', isOpen);
+}
+function closeDrawer() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('drawer-backdrop');
+  sidebar.classList.remove('open');
+  backdrop.classList.remove('show');
+  document.body.classList.remove('drawer-open');
+}
+// Fecha drawer ao clicar em qualquer quick-btn (UX mobile)
+document.addEventListener('click', (e) => {
+  if (!IS_MOBILE()) return;
+  if (e.target.closest('.quick-btn') || e.target.closest('.perfil-btn') ||
+      e.target.closest('.chip') || e.target.closest('.rota-destino') ||
+      e.target.closest('.rota-modo')) {
+    closeDrawer();
+  }
+});
+// Tecla ESC fecha o drawer
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+// Resize: se virar desktop, garante drawer fechado
+window.addEventListener('resize', () => { if (!IS_MOBILE()) closeDrawer(); });
+
 // ── Relógio ao vivo ──
 function updateTime() {
   const now = new Date();
-  document.getElementById('live-time').textContent =
+  const el = document.getElementById('live-time');
+  if (!el) return;
+  el.textContent =
     now.toLocaleDateString('pt-BR') + ' · ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
 }
 updateTime(); setInterval(updateTime, 10000);
@@ -512,6 +738,16 @@ function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
+
+// No mobile, empurra o input pra cima quando o teclado virtual abre
+function handleFocusMobile() {
+  if (!IS_MOBILE()) return;
+  // Pequeno delay pra deixar o teclado começar a aparecer
+  setTimeout(() => {
+    document.querySelector('.input-area')?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  }, 250);
+}
+inputEl?.addEventListener('focus', handleFocusMobile);
 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); }
@@ -632,6 +868,25 @@ function abrirEmail() {
   inputEl.value = '📧 Classifique este e-mail:\n\n[Cole aqui o conteúdo do e-mail]';
   inputEl.focus();
   autoResize(inputEl);
+}
+
+// Abre o painel de Esportes do sidebar (Brasileirão por padrão)
+// — em mobile: abre o drawer; em desktop: rola até a seção
+function abrirEsportes() {
+  if (IS_MOBILE()) {
+    // abre o drawer e espera ele deslizar
+    if (!document.getElementById('sidebar').classList.contains('open')) {
+      toggleDrawer();
+    }
+    // usuário pode escolher Flamengo / Flu / Vasco / Botafogo nos botões
+  }
+  // rola até a seção de esportes
+  const section = Array.from(document.querySelectorAll('.sidebar-section'))
+    .find(s => s.querySelector('h3')?.textContent?.includes('Esportes'));
+  section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // carrega Brasileirão (já é o default ativo, mas garante que renderiza)
+  const btnAtual = document.querySelector('.perfil-btn.active[data-esporte], .perfil-btn.active');
+  carregarEsporte('brasileirao', btnAtual);
 }
 
 function abrirCriarEvento() {
